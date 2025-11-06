@@ -1,22 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Eye, 
-  Calendar, 
-  ExternalLink, 
   Search, 
   Filter,
-  Trash2,
-  Download,
-  Star,
-  BarChart3
+  Calendar,
+  BarChart3,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import EnhancedModal from '../components/EnhancedModal';
-import EnhancedQuizCard from '../components/EnhancedQuizCard';
+import FixedEnhancedQuizCard from '../components/FixedEnhancedQuizCard';
+import QuizHistoryCard from '../components/QuizHistoryCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const EnhancedHistoryTab = () => {
+const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
   const [quizzes, setQuizzes] = useState([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +21,7 @@ const EnhancedHistoryTab = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'details'
 
   useEffect(() => {
     loadHistory();
@@ -34,12 +32,14 @@ const EnhancedHistoryTab = () => {
   }, [quizzes, searchTerm, sortBy]);
 
   const loadHistory = async () => {
+    setLoading(true);
     try {
+      console.log('🔄 Loading quiz history...');
       const history = await api.getQuizHistory();
-      console.log(history)
+      console.log('✅ Loaded quiz history:', history);
       setQuizzes(history);
     } catch (err) {
-      console.error('Failed to load history:', err);
+      console.error('❌ Failed to load history:', err);
     } finally {
       setLoading(false);
     }
@@ -60,6 +60,8 @@ const EnhancedHistoryTab = () => {
           return new Date(a.date_generated) - new Date(b.date_generated);
         case 'title':
           return a.title.localeCompare(b.title);
+        case 'attempts':
+          return (b.attempts_count || 0) - (a.attempts_count || 0);
         default:
           return 0;
       }
@@ -68,35 +70,36 @@ const EnhancedHistoryTab = () => {
     setFilteredQuizzes(filtered);
   };
 
-  const handleViewDetails = async (quizId) => {
+  const handleViewDetails = async (quiz) => {
     try {
-      const quiz = await api.getQuizById(quizId);
-      setSelectedQuiz(quiz);
+      console.log('👀 Viewing details for quiz:', quiz.id);
+      const quizDetails = await api.getQuizById(quiz.id);
+      setSelectedQuiz(quizDetails);
+      setViewMode('details');
       setModalOpen(true);
     } catch (err) {
-      console.error('Failed to load quiz details:', err);
+      console.error('❌ Failed to load quiz details:', err);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handleTakeQuiz = async (quiz) => {
+    try {
+      console.log('🎯 Taking quiz:', quiz.id);
+      const quizDetails = await api.getQuizById(quiz.id);
+      setSelectedQuiz(quizDetails);
+      setViewMode('take');
+      setModalOpen(true);
+    } catch (err) {
+      console.error('❌ Failed to load quiz for taking:', err);
+    }
   };
 
-  const getTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-    return formatDate(dateString);
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedQuiz(null);
+    setViewMode('list');
+    // Reload history to get updated attempt counts
+    loadHistory();
   };
 
   if (loading) {
@@ -132,10 +135,33 @@ const EnhancedHistoryTab = () => {
           className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
         >
           {[
-            { label: 'Total Quizzes', value: quizzes.length, icon: BarChart3, color: 'blue' },
-            { label: 'This Week', value: quizzes.filter(q => new Date(q.date_generated) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length, icon: Calendar, color: 'green' },
-            { label: 'This Month', value: quizzes.filter(q => new Date(q.date_generated) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length, icon: Star, color: 'amber' },
-            { label: 'Active', value: quizzes.length, icon: BarChart3, color: 'purple' }
+            { 
+              label: 'Total Quizzes', 
+              value: quizzes.length, 
+              icon: BarChart3, 
+              color: 'blue' 
+            },
+            { 
+              label: 'Total Attempts', 
+              value: quizzes.reduce((sum, q) => sum + (q.attempts_count || 0), 0), 
+              icon: Calendar, 
+              color: 'green' 
+            },
+            { 
+              label: 'This Week', 
+              value: quizzes.filter(q => {
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                return new Date(q.date_generated) > weekAgo;
+              }).length, 
+              icon: Calendar, 
+              color: 'amber' 
+            },
+            { 
+              label: 'Active', 
+              value: quizzes.filter(q => (q.attempts_count || 0) > 0).length, 
+              icon: BarChart3, 
+              color: 'purple' 
+            }
           ].map((stat, index) => (
             <div key={index} className="card p-6 text-center">
               <div className={`w-12 h-12 bg-${stat.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-3`}>
@@ -176,13 +202,22 @@ const EnhancedHistoryTab = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="border border-gray-300 rounded-xl px-3 py-3 pr-8 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  className="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
                   <option value="title">Title A-Z</option>
+                  <option value="attempts">Most Attempts</option>
                 </select>
               </div>
+
+              <button
+                onClick={onGenerateNewQuiz}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Plus size={18} />
+                <span>New Quiz</span>
+              </button>
             </div>
           </div>
         </motion.div>
@@ -192,67 +227,16 @@ const EnhancedHistoryTab = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+          className="space-y-6"
         >
           <AnimatePresence>
             {filteredQuizzes.map((quiz, index) => (
-              <motion.div
+              <QuizHistoryCard
                 key={quiz.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.1 }}
-                className="card p-6 hover:shadow-xl transition-all duration-300 group"
-              >
-                {/* Quiz Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
-                      {quiz.title}
-                    </h3>
-                    <div className="flex items-center text-sm text-gray-500 mb-3">
-                      <Calendar size={14} className="mr-1" />
-                      {getTimeAgo(quiz.date_generated)}
-                    </div>
-                  </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ml-4">
-                    {quiz.title.charAt(0)}
-                  </div>
-                </div>
-
-                {/* URL Preview */}
-                <div className="mb-4">
-                  <a
-                    href={quiz.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
-                  >
-                    <ExternalLink size={14} className="mr-2 flex-shrink-0" />
-                    <span className="truncate">{quiz.url}</span>
-                  </a>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => handleViewDetails(quiz.id)}
-                    className="btn-primary flex items-center space-x-2 text-sm px-4 py-2"
-                  >
-                    <Eye size={16} />
-                    <span>View Details</span>
-                  </button>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                      <Download size={16} />
-                    </button>
-                    <button className="p-2 text-gray-400 hover:text-rose-500 transition-colors">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+                quiz={quiz}
+                onViewDetails={handleViewDetails}
+                onTakeQuiz={handleTakeQuiz}
+              />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -268,12 +252,18 @@ const EnhancedHistoryTab = () => {
               <BarChart3 className="text-gray-400" size={40} />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              No Quizzes Yet
+              {quizzes.length === 0 ? 'No Quizzes Yet' : 'No Matching Quizzes'}
             </h3>
             <p className="text-gray-600 max-w-md mx-auto mb-6">
-              Your generated quizzes will appear here. Start by creating your first quiz from a Wikipedia article!
+              {quizzes.length === 0 
+                ? 'Your generated quizzes will appear here. Start by creating your first quiz from a Wikipedia article!'
+                : 'No quizzes match your search criteria. Try adjusting your search terms.'
+              }
             </p>
-            <button className="btn-primary">
+            <button 
+              onClick={onGenerateNewQuiz}
+              className="btn-primary"
+            >
               Generate First Quiz
             </button>
           </motion.div>
@@ -283,13 +273,21 @@ const EnhancedHistoryTab = () => {
       {/* Quiz Details Modal */}
       <EnhancedModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleModalClose}
         title={selectedQuiz?.title}
         size="xl"
       >
         {selectedQuiz && (
           <div className="p-4">
-            <EnhancedQuizCard quiz={selectedQuiz} showAnswers={true} />
+            <FixedEnhancedQuizCard 
+              quiz={selectedQuiz} 
+              mode={viewMode === 'take' ? 'take' : 'view'}
+              onModeChange={(newMode) => {
+                if (newMode === 'view') {
+                  setViewMode('details');
+                }
+              }}
+            />
           </div>
         )}
       </EnhancedModal>

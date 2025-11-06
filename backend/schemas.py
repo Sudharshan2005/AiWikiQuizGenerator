@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 class QuizQuestion(BaseModel):
@@ -27,3 +27,24 @@ class QuizHistory(BaseModel):
     url: str
     title: str
     date_generated: datetime
+    attempts_count: int
+    best_score: Optional[float] = None
+
+class QuizAttemptCreate(BaseModel):
+    answers: List[str]
+    time_taken: int
+
+class QuizAttemptResponse(BaseModel):
+    id: int
+    score: float
+    correct_answers: int
+    total_questions: int
+    time_taken: int
+    date_attempted: datetime
+    answers: List[str]
+
+class QuizWithAttempts(BaseModel):
+    quiz: QuizResponse
+    attempts: List[QuizAttemptResponse]
+    best_score: Optional[float]
+    total_attempts: int

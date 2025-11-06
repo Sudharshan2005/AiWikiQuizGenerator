@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import EnhancedQuizCard from '../components/EnhancedQuizCard';
+import FixedEnhancedQuizCard from '../components/FixedEnhancedQuizCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const EnhancedGenerateQuizTab = () => {
@@ -187,27 +188,27 @@ const EnhancedGenerateQuizTab = () => {
                 </motion.div>
               )}
 
-              {step === 'result' && quiz && (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                >
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Quiz Generated Successfully! 🎉
-                    </h2>
-                    <button
-                      onClick={resetForm}
-                      className="btn-secondary"
-                    >
-                      Create New Quiz
-                    </button>
-                  </div>
-                  <EnhancedQuizCard quiz={quiz} showAnswers={true} />
-                </motion.div>
-              )}
+{step === 'result' && quiz && (
+  <motion.div
+    key="result"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+  >
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-2xl font-bold text-gray-900">
+        Quiz Generated Successfully! 🎉
+      </h2>
+      <button
+        onClick={resetForm}
+        className="btn-secondary"
+      >
+        Create New Quiz
+      </button>
+    </div>
+    <FixedEnhancedQuizCard quiz={quiz} mode="view" />
+  </motion.div>
+)}
 
               {step === 'input' && !quiz && (
                 <motion.div

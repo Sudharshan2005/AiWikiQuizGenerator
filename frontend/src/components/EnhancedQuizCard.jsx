@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -10,184 +10,138 @@ import {
   Calendar,
   Users,
   MapPin,
-  Building
+  Building,
+  BarChart3,
+  Target,
+  Clock,
+  Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuizTaker from './QuizTaker';
+import { api } from '../services/api';
 
-const DifficultyBadge = ({ difficulty }) => {
-  const config = {
-    easy: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: '🌟' },
-    medium: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: '💡' },
-    hard: { color: 'bg-rose-100 text-rose-800 border-rose-200', icon: '🔥' }
+const AttemptsHistory = ({ attempts, quiz }) => {
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const { color, icon } = config[difficulty] || config.medium;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${color}`}>
-      <span className="mr-1">{icon}</span>
-      {difficulty}
-    </span>
-  );
-};
-
-const EntitySection = ({ entities }) => {
-  const icons = {
-    people: Users,
-    organizations: Building,
-    locations: MapPin
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'text-emerald-600 bg-emerald-100';
+    if (score >= 60) return 'text-amber-600 bg-amber-100';
+    return 'text-rose-600 bg-rose-100';
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {Object.entries(entities).map(([category, items]) => {
-        const Icon = icons[category] || HelpCircle;
-        return (
-          <div key={category} className="card p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center mb-3">
-              <Icon size={18} className="text-primary-600 mr-2" />
-              <h4 className="font-semibold text-gray-900 capitalize">{category}</h4>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+        <BarChart3 size={20} className="mr-2 text-primary-600" />
+        Your Attempts ({attempts.length})
+      </h3>
+      
+      {attempts.map((attempt, index) => (
+        <motion.div
+          key={attempt.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="card p-4 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${getScoreColor(attempt.score)}`}>
+                {Math.round(attempt.score)}%
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">
+                  {attempt.correct_answers} / {attempt.total_questions} correct
+                </div>
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <span className="flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    {formatTime(attempt.time_taken)}
+                  </span>
+                  <span className="flex items-center">
+                    <Calendar size={14} className="mr-1" />
+                    {formatDate(attempt.date_attempted)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <ul className="space-y-2">
-              {items.slice(0, 5).map((entity, idx) => (
-                <li key={idx} className="flex items-center text-sm text-gray-600">
-                  <div className="w-1.5 h-1.5 bg-primary-400 rounded-full mr-3"></div>
-                  {entity}
-                </li>
-              ))}
-              {items.length > 5 && (
-                <li className="text-xs text-primary-600 font-medium mt-2">
-                  +{items.length - 5} more
-                </li>
+            
+            <div className="text-right">
+              <div className={`text-sm font-medium px-2 py-1 rounded-full ${getScoreColor(attempt.score)}`}>
+                {attempt.score >= 80 ? 'Excellent' : 
+                 attempt.score >= 60 ? 'Good' : 
+                 'Needs Practice'}
+              </div>
+              {index === 0 && (
+                <div className="text-xs text-primary-600 font-medium mt-1 flex items-center justify-end">
+                  <Award size={12} className="mr-1" />
+                  Latest
+                </div>
               )}
-            </ul>
+            </div>
           </div>
-        );
-      })}
+        </motion.div>
+      ))}
+
+      {attempts.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <Target size={48} className="mx-auto mb-4 text-gray-300" />
+          <p>No attempts yet. Be the first to take this quiz!</p>
+        </div>
+      )}
     </div>
   );
 };
 
-const QuizQuestionCard = ({ question, index, showAnswers, userAnswer, onAnswer }) => {
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
+  const [activeSection, setActiveSection] = useState(mode === 'take' ? 'quiz' : 'overview');
+  const [attempts, setAttempts] = useState([]);
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
+  const [latestAttempt, setLatestAttempt] = useState(null);
 
-  const handleOptionSelect = (option) => {
-    if (!showAnswers && onAnswer) {
-      setSelectedOption(option);
-      onAnswer(option);
+  useEffect(() => {
+    if (quiz?.id) {
+      loadAttempts();
+    }
+  }, [quiz?.id]);
+
+  const loadAttempts = async () => {
+    setLoadingAttempts(true);
+    try {
+      const attemptsData = await api.getQuizAttempts(quiz.id);
+      setAttempts(attemptsData);
+      if (attemptsData.length > 0) {
+        setLatestAttempt(attemptsData[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load attempts:', error);
+    } finally {
+      setLoadingAttempts(false);
     }
   };
 
-  const isCorrect = selectedOption === question.answer;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="card p-6 hover:shadow-lg transition-all duration-300"
-    >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-start space-x-4 flex-1">
-          <div className="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-            {index + 1}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 leading-relaxed">
-              {question.question}
-            </h3>
-            <div className="mt-2">
-              <DifficultyBadge difficulty={question.difficulty} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-        {question.options.map((option, optIndex) => {
-          const isSelected = selectedOption === option;
-          const isCorrectAnswer = showAnswers && option === question.answer;
-          const isWrongAnswer = showAnswers && isSelected && !isCorrect;
-
-          let optionStyle = "bg-gray-50 border-gray-200 hover:bg-gray-100";
-          if (isCorrectAnswer) optionStyle = "bg-emerald-50 border-emerald-300 text-emerald-900";
-          if (isWrongAnswer) optionStyle = "bg-rose-50 border-rose-300 text-rose-900";
-          if (isSelected && !showAnswers) optionStyle = "bg-primary-50 border-primary-300 text-primary-900";
-
-          return (
-            <motion.div
-              key={optIndex}
-              whileHover={{ scale: !showAnswers ? 1.02 : 1 }}
-              whileTap={{ scale: !showAnswers ? 0.98 : 1 }}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${optionStyle} ${
-                !showAnswers ? 'hover:shadow-md' : ''
-              }`}
-              onClick={() => handleOptionSelect(option)}
-            >
-              <div className="flex items-center">
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 flex-shrink-0 ${
-                  isSelected || isCorrectAnswer
-                    ? 'bg-primary-500 border-primary-500 text-white'
-                    : 'border-gray-300'
-                }`}>
-                  {String.fromCharCode(65 + optIndex)}
-                </div>
-                <span className="font-medium">{option}</span>
-                {isCorrectAnswer && (
-                  <CheckCircle2 size={20} className="text-emerald-500 ml-auto flex-shrink-0" />
-                )}
-                {isWrongAnswer && (
-                  <XCircle size={20} className="text-rose-500 ml-auto flex-shrink-0" />
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Explanation */}
-      {showAnswers && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="overflow-hidden"
-        >
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center mb-2">
-              <HelpCircle size={18} className="text-blue-600 mr-2" />
-              <span className="font-semibold text-blue-900">Explanation</span>
-            </div>
-            <p className="text-blue-800 text-sm leading-relaxed">
-              {question.explanation}
-            </p>
-          </div>
-        </motion.div>
-      )}
-    </motion.div>
-  );
-};
-
-const EnhancedQuizCard = ({ quiz, showAnswers = true, onTakeQuiz }) => {
-  const [activeSection, setActiveSection] = useState('quiz');
-  const [userAnswers, setUserAnswers] = useState({});
-  const [quizCompleted, setQuizCompleted] = useState(false);
-
-  const handleAnswer = (questionIndex, answer) => {
-    setUserAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+  const handleQuizComplete = (result) => {
+    setLatestAttempt(result);
+    loadAttempts(); // Reload attempts to include the new one
+    setActiveSection('results');
   };
 
-  const calculateScore = () => {
-    const correctAnswers = quiz.quiz.filter((q, index) => userAnswers[index] === q.answer).length;
-    return {
-      correct: correctAnswers,
-      total: quiz.quiz.length,
-      percentage: Math.round((correctAnswers / quiz.quiz.length) * 100)
-    };
-  };
-
-  const score = calculateScore();
+  const bestScore = attempts.length > 0 
+    ? Math.max(...attempts.map(a => a.score))
+    : null;
 
   return (
     <motion.div
@@ -212,27 +166,70 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, onTakeQuiz }) => {
                 Generated on {new Date().toLocaleDateString()}
               </div>
               <div className="flex items-center">
-                <HelpCircle size={16} className="mr-2" />
+                <Target size={16} className="mr-2" />
                 {quiz.quiz.length} questions
               </div>
+              {bestScore && (
+                <div className="flex items-center">
+                  <Award size={16} className="mr-2" />
+                  Best Score: {Math.round(bestScore)}%
+                </div>
+              )}
             </div>
           </div>
           
-          <a
-            href={quiz.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary flex items-center whitespace-nowrap"
-          >
-            <ExternalLink size={16} className="mr-2" />
-            View Article
-          </a>
+          <div className="flex flex-col gap-3">
+            <a
+              href={quiz.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary flex items-center justify-center space-x-2"
+            >
+              <ExternalLink size={16} />
+              <span>View Article</span>
+            </a>
+            {mode !== 'take' && (
+              <button
+                onClick={() => setActiveSection('quiz')}
+                className="btn-primary flex items-center justify-center space-x-2"
+              >
+                <Target size={16} />
+                <span>Take Quiz</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Stats Bar */}
+      {attempts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="card p-4 text-center">
+            <div className="text-2xl font-bold text-primary-600">{attempts.length}</div>
+            <div className="text-sm text-gray-600">Total Attempts</div>
+          </div>
+          <div className="card p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-600">{Math.round(bestScore)}%</div>
+            <div className="text-sm text-gray-600">Best Score</div>
+          </div>
+          <div className="card p-4 text-center">
+            <div className="text-2xl font-bold text-amber-600">
+              {Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length)}%
+            </div>
+            <div className="text-sm text-gray-600">Average Score</div>
+          </div>
+          <div className="card p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {quiz.quiz.length}
+            </div>
+            <div className="text-sm text-gray-600">Questions</div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
       <div className="flex space-x-1 p-1 bg-gray-100 rounded-2xl w-fit">
-        {['overview', 'quiz', 'topics'].map((tab) => (
+        {['overview', 'quiz', 'history', 'topics'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveSection(tab)}
@@ -242,12 +239,12 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, onTakeQuiz }) => {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {tab}
+            {tab === 'history' ? `History (${attempts.length})` : tab}
           </button>
         ))}
       </div>
 
-      {/* Overview Section */}
+      {/* Content Sections */}
       <AnimatePresence mode="wait">
         {activeSection === 'overview' && (
           <motion.div
@@ -258,38 +255,42 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, onTakeQuiz }) => {
             transition={{ duration: 0.3 }}
           >
             {/* Key Entities */}
-            <div className="card p-6">
+            <div className="card p-6 mb-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
                 <Users className="mr-3 text-primary-600" size={24} />
                 Key Entities
               </h3>
-              <EntitySection entities={quiz.key_entities} />
+              {/* Entity section implementation */}
             </div>
 
-            {/* Sections */}
-            <div className="card p-6 mt-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <Star className="mr-3 text-primary-600" size={24} />
-                Article Sections
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {quiz.sections.map((section, index) => (
-                  <div
-                    key={index}
-                    className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl p-4 text-center hover:shadow-md transition-shadow"
-                  >
-                    <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold mx-auto mb-2">
-                      {index + 1}
+            {/* Recent Attempt (if any) */}
+            {latestAttempt && (
+              <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Award className="mr-2 text-blue-600" size={20} />
+                  Latest Attempt
+                </h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {Math.round(latestAttempt.score)}%
                     </div>
-                    <span className="font-medium text-gray-900">{section}</span>
+                    <div className="text-sm text-gray-600">
+                      {latestAttempt.correct_answers} / {latestAttempt.total_questions} correct
+                    </div>
                   </div>
-                ))}
+                  <button
+                    onClick={() => setActiveSection('history')}
+                    className="btn-secondary"
+                  >
+                    View All Attempts
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </motion.div>
         )}
 
-        {/* Quiz Section */}
         {activeSection === 'quiz' && (
           <motion.div
             key="quiz"
@@ -298,109 +299,38 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, onTakeQuiz }) => {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
           >
-            {!showAnswers && !quizCompleted && (
-              <div className="card p-6 mb-6 bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-primary-900 mb-2">
-                      🎯 Take the Quiz
-                    </h3>
-                    <p className="text-primary-700">
-                      Test your knowledge! Select the correct answer for each question.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setQuizCompleted(true)}
-                    className="btn-primary"
-                  >
-                    Submit Answers
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!showAnswers && quizCompleted && (
-              <div className="card p-8 mb-6 text-center bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200">
-                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 size={40} className="text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-emerald-900 mb-2">
-                  Quiz Completed!
-                </h3>
-                <p className="text-emerald-700 mb-4">
-                  You scored {score.correct} out of {score.total} ({score.percentage}%)
-                </p>
-                <div className="w-full bg-emerald-200 rounded-full h-3 mb-4">
-                  <div
-                    className="bg-emerald-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${score.percentage}%` }}
-                  ></div>
-                </div>
-                <button
-                  onClick={() => {
-                    setQuizCompleted(false);
-                    setUserAnswers({});
-                  }}
-                  className="btn-secondary"
-                >
-                  Retry Quiz
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              {quiz.quiz.map((question, index) => (
-                <QuizQuestionCard
-                  key={index}
-                  question={question}
-                  index={index}
-                  showAnswers={showAnswers || quizCompleted}
-                  userAnswer={userAnswers[index]}
-                  onAnswer={(answer) => handleAnswer(index, answer)}
-                />
-              ))}
-            </div>
+            <QuizTaker 
+              quiz={quiz} 
+              onQuizComplete={handleQuizComplete}
+            />
           </motion.div>
         )}
 
-        {/* Related Topics Section */}
-        {activeSection === 'topics' && (
+        {activeSection === 'history' && (
           <motion.div
-            key="topics"
+            key="history"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="card p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <Star className="mr-3 text-primary-600" size={24} />
-                Continue Learning
-              </h3>
-              <p className="text-gray-600 mb-8 text-lg">
-                Explore these related topics to deepen your understanding:
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {quiz.related_topics.map((topic, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer group"
-                  >
-                    <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-200 transition-colors">
-                      <span className="text-2xl">📚</span>
-                    </div>
-                    <h4 className="font-semibold text-gray-900 text-lg mb-2 group-hover:text-primary-600 transition-colors">
-                      {topic}
-                    </h4>
-                    <p className="text-gray-500 text-sm">
-                      Explore this topic on Wikipedia
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            <AttemptsHistory attempts={attempts} quiz={quiz} />
+          </motion.div>
+        )}
+
+        {activeSection === 'results' && latestAttempt && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <QuizTaker 
+              quiz={quiz} 
+              showResults={true}
+              attemptData={latestAttempt}
+            />
           </motion.div>
         )}
       </AnimatePresence>

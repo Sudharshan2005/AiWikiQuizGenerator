@@ -26,16 +26,26 @@ function App() {
     { id: 'history', label: 'History', icon: History },
   ];
 
+  const handleGenerateNewQuiz = () => {
+    setActiveTab('generate');
+    setMobileMenuOpen(false);
+  };
+
+  const handleNavigateToTab = (tabId) => {
+    setActiveTab(tabId);
+    setMobileMenuOpen(false);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Hero onGetStarted={() => setActiveTab('generate')} />;
+        return <Hero onGetStarted={handleGenerateNewQuiz} />;
       case 'generate':
         return <EnhancedGenerateQuizTab />;
       case 'history':
-        return <EnhancedHistoryTab />;
+        return <EnhancedHistoryTab onGenerateNewQuiz={handleGenerateNewQuiz} />;
       default:
-        return <Hero onGetStarted={() => setActiveTab('generate')} />;
+        return <Hero onGetStarted={handleGenerateNewQuiz} />;
     }
   };
 
@@ -57,7 +67,7 @@ function App() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => setActiveTab('home')}
+              onClick={() => handleNavigateToTab('home')}
             >
               <div className="relative">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -89,7 +99,7 @@ function App() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleNavigateToTab(tab.id)}
                     className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                       isActive
                         ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg'
@@ -128,10 +138,7 @@ function App() {
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => {
-                          setActiveTab(tab.id);
-                          setMobileMenuOpen(false);
-                        }}
+                        onClick={() => handleNavigateToTab(tab.id)}
                         className={`flex items-center space-x-3 w-full px-6 py-4 text-left transition-all duration-200 ${
                           isActive
                             ? 'bg-primary-50 text-primary-600 border-r-4 border-primary-500'
@@ -188,18 +195,62 @@ function App() {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><button onClick={() => setActiveTab('generate')} className="hover:text-white transition-colors">Generate Quiz</button></li>
-                <li><button onClick={() => setActiveTab('history')} className="hover:text-white transition-colors">Quiz History</button></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li>
+                  <button 
+                    onClick={handleGenerateNewQuiz}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Generate Quiz
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => handleNavigateToTab('history')}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Quiz History
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => handleNavigateToTab('home')}
+                    className="hover:text-white transition-colors text-left w-full"
+                  >
+                    Features
+                  </button>
+                </li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Connect</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="https://github.com" className="hover:text-white transition-colors">GitHub</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
+                <li>
+                  <a 
+                    href="https://github.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="#" 
+                    className="hover:text-white transition-colors"
+                  >
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="#" 
+                    className="hover:text-white transition-colors"
+                  >
+                    Support
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
