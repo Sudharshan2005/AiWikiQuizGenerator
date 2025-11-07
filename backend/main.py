@@ -7,25 +7,31 @@ import schemas
 from database import get_db, Quiz, QuizAttempt
 from scraper import scrape_wikipedia, validate_wikipedia_url
 from llm_quiz_generator import QuizGenerator
-import json
 import uuid
-from datetime import datetime
 import os
 
-app = FastAPI(title="AI Wiki Quiz Generator", version="1.0.0")
+app = FastAPI(
+    title="AI Wiki Quiz Generator",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
-# CORS middleware
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://localhost:5173",
+    "https://your-frontend-app.onrender.com"  # Your Render frontend URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-if os.getenv("RENDER"):
-    # If running on Render, allow all origins for testing
-    allowed_origins.append("*")
 
 quiz_generator = QuizGenerator()
 
@@ -40,7 +46,7 @@ def get_user_session(request: Request, response: Response):
             max_age=30*24*60*60,
             httponly=True,
             samesite="lax",
-            secure=os.getenv("RENDER") is not None  # Use secure cookies in production
+            secure=os.getenv("RENDER", False)  # Use secure cookies in production
         )
     return session_id
 
@@ -263,15 +269,13 @@ def health_check(db: Session = Depends(get_db)):
         return {
             "status": "healthy", 
             "message": "API and database are running",
-            "database": "connected",
-            "environment": "production" if os.getenv("RENDER") else "development"
+            "database": "connected"
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "message": "Database connection failed",
-            "error": str(e),
-            "environment": "production" if os.getenv("RENDER") else "development"
+            "error": str(e)
         }
 
 # Add endpoint to list all available endpoints

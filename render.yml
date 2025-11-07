@@ -4,13 +4,13 @@ services:
     env: python
     plan: free
     buildCommand: |
-      cd backend && pip install -r requirements.txt
-    startCommand: |
-      cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: quiz_database
-          property: connectionString
+          name: quiz-database
+          property: postgresql://neondb_owner:npg_Vjy1K0faDdvr@ep-muddy-feather-a4urgck5-pooler.us-east-1.aws.neon.tech/AiQuiz?sslmode=require&channel_binding=require
       - key: GEMINI_API_KEY
-        sync: false
+        value: AIzaSyC_ydcZWhV0Z4S8iSw2qAiHTP_cRnzLBGc
