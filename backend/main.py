@@ -7,8 +7,7 @@ import schemas
 from database import get_db, Quiz, QuizAttempt
 from scraper import scrape_wikipedia, validate_wikipedia_url
 from llm_quiz_generator import QuizGenerator
-import uuid
-import os
+import json
 
 app = FastAPI(
     title="AI Wiki Quiz Generator",
@@ -32,23 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 quiz_generator = QuizGenerator()
-
-def get_user_session(request: Request, response: Response):
-    """Get or create user session ID and set cookie"""
-    session_id = request.cookies.get("quiz_session_id")
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        response.set_cookie(
-            key="quiz_session_id",
-            value=session_id,
-            max_age=30*24*60*60,
-            httponly=True,
-            samesite="lax",
-            secure=os.getenv("RENDER", False)
-        )
-    return session_id
 
 @app.get("/")
 def read_root():
@@ -102,12 +85,8 @@ def generate_quiz(quiz_request: schemas.QuizRequest, db: Session = Depends(get_d
 def submit_quiz_attempt(
     quiz_id: int,
     attempt_data: schemas.QuizAttemptCreate,
-    request: Request,
-    response: Response,
     db: Session = Depends(get_db)
 ):
-    user_session = get_user_session(request, response)
-    
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(
@@ -144,7 +123,6 @@ def submit_quiz_attempt(
     
     attempt = QuizAttempt(
         quiz_id=quiz_id,
-        user_session=user_session,
         score=score_percentage,
         correct_answers=correct_answers,
         total_questions=total_questions,
@@ -169,17 +147,11 @@ def submit_quiz_attempt(
 @app.get("/quizzes/{quiz_id}/attempts", response_model=List[schemas.QuizAttemptResponse])
 def get_quiz_attempts(
     quiz_id: int,
-    request: Request,
-    response: Response,
     db: Session = Depends(get_db)
 ):
-    user_session = get_user_session(request, response)
-    
     attempts = db.query(QuizAttempt).filter(
-        QuizAttempt.quiz_id == quiz_id,
-        QuizAttempt.user_session == user_session
+        QuizAttempt.quiz_id == quiz_id
     ).order_by(QuizAttempt.date_attempted.desc()).all()
-    
     
     result = []
     for attempt in attempts:
@@ -210,7 +182,10 @@ def get_quiz_history(db: Session = Depends(get_db)):
     result = []
     
     for quiz in quizzes:
-        attempts_count = db.query(QuizAttempt).filter(QuizAttempt.quiz_id == quiz.id).count()
+        attempts = db.query(QuizAttempt).filter(QuizAttempt.quiz_id == quiz.id).all()
+        attempts_count = len(attempts)
+        
+        best_score = max([attempt.score for attempt in attempts]) if attempts else None
         
         result.append({
             "id": quiz.id,
@@ -218,7 +193,7 @@ def get_quiz_history(db: Session = Depends(get_db)):
             "title": quiz.title,
             "date_generated": quiz.date_generated,
             "attempts_count": attempts_count,
-            "best_score": None 
+            "best_score": best_score
         })
     
     return result
