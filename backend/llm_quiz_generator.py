@@ -1,11 +1,9 @@
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import PromptTemplate
-from langchain.output_parsers import PydanticOutputParser
-from models import QuizOutput
+import google.generativeai as genai
 from dotenv import load_dotenv
-import re, json
-from pydantic import ValidationError
+import json
+import re
+from models import QuizOutput
 
 load_dotenv()
 
@@ -13,73 +11,121 @@ class QuizGenerator:
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("GEMINI_API_KEY not found.")
+            raise ValueError("GEMINI_API_KEY not found in environment variables")
         
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=api_key,
-            temperature=0.7
-        )
-        self.parser = PydanticOutputParser(pydantic_object=QuizOutput)
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         
-        self.prompt_template = PromptTemplate(
-            template="""
-You are an expert educational content creator. Your task is to generate a quiz from a Wikipedia article.
-
-ARTICLE CONTENT:
-{article_text}
-
-Follow these exact steps:
-1. Write a 3-5 sentence summary of the article.
-2. Extract key entities (people, organizations, locations).
-3. Identify main sections of the article.
-4. Create 5–10 quiz questions, each with 4 options (A, B, C, D) and one correct answer.
-5. Suggest 3–5 related Wikipedia topics for further reading.
-6. Difficulty levels: easy, medium, hard.
-7. All output MUST be in valid JSON only — no Markdown, no text outside JSON.
-
-Output Format:
-{format_instructions}
-""",
-            input_variables=["article_text"],
-            partial_variables={"format_instructions": self.parser.get_format_instructions()},
-        )
-        
-        self.chain = self.prompt_template | self.llm | self.parser
-
     def generate_quiz(self, article_text: str) -> QuizOutput:
+        """Generate quiz from article text using direct Gemini API"""
+        
+        prompt = f"""
+        You are an expert educational content creator. Create a comprehensive quiz based on the following Wikipedia article content.
+        
+        ARTICLE CONTENT:
+        {article_text[:8000]}  # Limit text length
+        
+        IMPORTANT INSTRUCTIONS:
+        1. Generate 5-8 high-quality quiz questions that test understanding of key concepts
+        2. Questions should be factual and directly based on the provided content
+        3. Each question must have exactly 4 options labeled A, B, C, D
+        4. Provide the correct answer as JUST THE LETTER (A, B, C, or D) - NOT the full text
+        5. Assign appropriate difficulty levels (easy, medium, hard)
+        6. Provide a brief explanation for each answer
+        7. Extract key entities (people, organizations, locations)
+        8. Identify main sections of the article
+        9. Suggest 3-5 related Wikipedia topics for further reading
+        
+        CRITICAL: The "answer" field must contain ONLY the letter (A, B, C, or D), not the full option text.
+        
+        Return the response in this exact JSON format:
+        {{
+            "summary": "Concise summary of the article",
+            "key_entities": {{
+                "people": ["list", "of", "people"],
+                "organizations": ["list", "of", "organizations"], 
+                "locations": ["list", "of", "locations"]
+            }},
+            "sections": ["list", "of", "main", "sections"],
+            "quiz": [
+                {{
+                    "question": "Question text?",
+                    "options": [
+                        "A) Option A text",
+                        "B) Option B text", 
+                        "C) Option C text",
+                        "D) Option D text"
+                    ],
+                    "answer": "A",  # MUST BE JUST THE LETTER A, B, C, or D
+                    "difficulty": "easy",
+                    "explanation": "Brief explanation of why this is correct"
+                }}
+            ],
+            "related_topics": ["topic1", "topic2", "topic3"]
+        }}
+        
+        Make sure the response is valid JSON that can be parsed directly.
+        """
+        
         try:
-            raw_output = self.llm.invoke(self.prompt_template.format(article_text=article_text))
-            text = raw_output.content if hasattr(raw_output, "content") else str(raw_output)
-
-            text = re.sub(r"^```json\s*|\s*```$", "", text.strip(), flags=re.DOTALL)
-
-            text = text.replace("\n", " ").replace("“", "\"").replace("”", "\"")
-            text = re.sub(r'(?<!\\)"([A-Za-z0-9 ,\.\'“”\-]*)"(?![:,}\]])', r'"\1"', text)
-
-            try:
-                data = json.loads(text)
-            except json.JSONDecodeError as err:
-                fixed_text = re.sub(r'(["\'])(?:(?=(\\?))\2.)*?\1', lambda m: m.group(0).replace('"', '\\"'), text)
-                data = json.loads(fixed_text)
-
-            result = QuizOutput(**data)
-
-            return result
-
-        except (ValidationError, json.JSONDecodeError) as e:
-            return QuizOutput(
-                summary="Failed to generate summary",
-                key_entities={},
-                sections=[],
-                quiz=[],
-                related_topics=[]
-            )
+            response = self.model.generate_content(prompt)
+            response_text = response.text
+            
+            # Clean the response - remove markdown code blocks if present
+            response_text = re.sub(r'```json\s*', '', response_text)
+            response_text = re.sub(r'\s*```', '', response_text)
+            response_text = response_text.strip()
+            
+            # Parse JSON response
+            quiz_data = json.loads(response_text)
+            
+            # Validate that answers are just letters
+            for question in quiz_data.get('quiz', []):
+                if 'answer' in question:
+                    # Ensure answer is just a letter
+                    answer = str(question['answer']).strip().upper()
+                    if len(answer) == 1 and answer in ['A', 'B', 'C', 'D']:
+                        question['answer'] = answer
+                    else:
+                        # Extract first character if it's a letter
+                        match = re.match(r'^([A-D])', answer)
+                        if match:
+                            question['answer'] = match.group(1)
+                        else:
+                            # Default to A if invalid
+                            question['answer'] = 'A'
+            
+            # Convert to Pydantic model
+            return QuizOutput(**quiz_data)
+            
         except Exception as e:
-            return QuizOutput(
-                summary="Failed to generate summary",
-                key_entities={},
-                sections=[],
-                quiz=[],
-                related_topics=[]
-            )
+            print(f"Quiz generation error: {e}")
+            # Return a fallback structure
+            return self._get_fallback_quiz()
+    
+    def _get_fallback_quiz(self) -> QuizOutput:
+        """Return a fallback quiz when generation fails"""
+        return QuizOutput(
+            summary="Failed to generate summary due to API error",
+            key_entities={
+                "people": [],
+                "organizations": [], 
+                "locations": []
+            },
+            sections=[],
+            quiz=[
+                {
+                    "question": "What is the main topic of this article?",
+                    "options": [
+                        "A) The content is not available",
+                        "B) Please try generating the quiz again", 
+                        "C) There was an error processing the article",
+                        "D) The AI service is temporarily unavailable"
+                    ],
+                    "answer": "B",
+                    "difficulty": "easy",
+                    "explanation": "There was an issue generating the quiz. Please try again."
+                }
+            ],
+            related_topics=[]
+        )

@@ -98,10 +98,24 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
     }
   };
 
+  // Helper function to check if answer is correct
+  const isAnswerCorrect = (userAnswer, correctAnswer, options = []) => {
+    if (!userAnswer || !correctAnswer) return false;
+    
+    // If correctAnswer is just a letter (A, B, C, D), extract the letter from userAnswer
+    if (/^[A-D]$/i.test(correctAnswer.trim())) {
+      const userAnswerLetter = userAnswer.charAt(0).toUpperCase();
+      return userAnswerLetter === correctAnswer.trim().toUpperCase();
+    }
+    
+    // If correctAnswer is a full option text, compare directly
+    return userAnswer === correctAnswer;
+  };
+
   const calculateScore = () => {
     let correct = 0;
     quiz.quiz.forEach((question, index) => {
-      if (userAnswers[index] === question.answer) {
+      if (isAnswerCorrect(userAnswers[index], question.answer, question.options)) {
         correct++;
       }
     });
@@ -110,6 +124,23 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
       total: quiz.quiz.length,
       percentage: Math.round((correct / quiz.quiz.length) * 100)
     };
+  };
+
+  // Helper function to find the correct option text
+  const findCorrectOption = (question) => {
+    const correctAnswer = question.answer;
+    
+    // If correctAnswer is just a letter (A, B, C, D), find the corresponding option
+    if (/^[A-D]$/i.test(correctAnswer.trim())) {
+      const letter = correctAnswer.trim().toUpperCase();
+      const optionIndex = letter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+      if (question.options && question.options[optionIndex]) {
+        return question.options[optionIndex];
+      }
+    }
+    
+    // If correctAnswer is already the full option text, return it
+    return correctAnswer;
   };
 
   const score = calculateScore();
@@ -305,11 +336,42 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Helper function to check if answer is correct
+  const isAnswerCorrect = (userAnswer, correctAnswer, options = []) => {
+    if (!userAnswer || !correctAnswer) return false;
+    
+    // If correctAnswer is just a letter (A, B, C, D), extract the letter from userAnswer
+    if (/^[A-D]$/i.test(correctAnswer.trim())) {
+      const userAnswerLetter = userAnswer.charAt(0).toUpperCase();
+      return userAnswerLetter === correctAnswer.trim().toUpperCase();
+    }
+    
+    // If correctAnswer is a full option text, compare directly
+    return userAnswer === correctAnswer;
+  };
+
+  // Helper function to find the correct option text
+  const findCorrectOption = (question) => {
+    const correctAnswer = question.answer;
+    
+    // If correctAnswer is just a letter (A, B, C, D), find the corresponding option
+    if (/^[A-D]$/i.test(correctAnswer.trim())) {
+      const letter = correctAnswer.trim().toUpperCase();
+      const optionIndex = letter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+      if (question.options && question.options[optionIndex]) {
+        return question.options[optionIndex];
+      }
+    }
+    
+    // If correctAnswer is already the full option text, return it
+    return correctAnswer;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="max-w-4xl mx-auto"
+      className="max-w-6xl mx-auto"
     >
       {/* Results Header */}
       <div className="card p-8 mb-8 bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200">
@@ -372,85 +434,195 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
         </div>
       </div>
 
-      {/* Question Review */}
+      {/* Question Review - FIXED VERSION */}
       <div className="card p-6 mb-6">
         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
           <BarChart3 size={24} className="mr-3 text-primary-600" />
           Question Review
         </h3>
-        <div className="space-y-6">
+        <div className="space-y-8">
           {quiz.quiz.map((question, index) => {
             const userAnswer = userAnswers[index];
-            const isCorrect = userAnswer === question.answer;
+            const correctOption = findCorrectOption(question);
+            const isCorrect = isAnswerCorrect(userAnswer, question.answer, question.options);
             
             return (
-              <div key={index} className="border border-gray-200 rounded-xl p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900 text-lg">
-                    {index + 1}. {question.question}
-                  </h4>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                      question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {question.difficulty}
-                    </span>
-                    {isCorrect ? (
-                      <CheckCircle2 size={20} className="text-green-500" />
-                    ) : (
-                      <XCircle size={20} className="text-red-500" />
-                    )}
+              <div key={index} className="border border-gray-200 rounded-xl p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-lg mb-2">
+                      {index + 1}. {question.question}
+                    </h4>
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                        question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {question.difficulty}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        {isCorrect ? (
+                          <span className="flex items-center text-green-600 text-sm font-medium">
+                            <CheckCircle2 size={16} className="mr-1" />
+                            Correct
+                          </span>
+                        ) : (
+                          <span className="flex items-center text-red-600 text-sm font-medium">
+                            <XCircle size={16} className="mr-1" />
+                            Incorrect
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2 mb-3">
+                {/* Options with clear indication of correct and user answers */}
+                <div className="space-y-3 mb-4">
                   {question.options.map((option, optIndex) => {
-                    const isUserAnswer = option === userAnswer;
-                    const isCorrectAnswer = option === question.answer;
                     const letter = String.fromCharCode(65 + optIndex);
+                    const isUserAnswer = option === userAnswer;
+                    const isCorrectOption = option === correctOption;
                     
-                    let bgColor = 'bg-gray-50';
-                    if (isCorrectAnswer) bgColor = 'bg-green-50 border-green-200';
-                    if (isUserAnswer && !isCorrect) bgColor = 'bg-red-50 border-red-200';
+                    let bgColor = 'bg-gray-50 border-gray-200';
+                    let textColor = 'text-gray-700';
+                    let borderColor = 'border-gray-200';
+                    
+                    if (isCorrectOption) {
+                      bgColor = 'bg-green-50 border-green-300';
+                      textColor = 'text-green-800';
+                      borderColor = 'border-green-300';
+                    }
+                    
+                    if (isUserAnswer && !isCorrect) {
+                      bgColor = 'bg-red-50 border-red-300';
+                      textColor = 'text-red-800';
+                      borderColor = 'border-red-300';
+                    }
+                    
+                    if (isUserAnswer && isCorrect) {
+                      bgColor = 'bg-green-50 border-green-300';
+                      textColor = 'text-green-800';
+                      borderColor = 'border-green-300';
+                    }
                     
                     return (
                       <div
                         key={optIndex}
-                        className={`p-3 rounded-lg border ${bgColor} flex items-center`}
+                        className={`p-4 rounded-lg border-2 ${bgColor} ${borderColor} ${textColor} transition-all duration-200`}
                       >
-                        <div className={`w-6 h-6 rounded flex items-center justify-center mr-3 font-medium ${
-                          isCorrectAnswer ? 'bg-green-500 text-white' :
-                          isUserAnswer && !isCorrect ? 'bg-red-500 text-white' :
-                          'bg-gray-200 text-gray-700'
-                        }`}>
-                          {letter}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-4 font-semibold ${
+                              isCorrectOption 
+                                ? 'bg-green-500 text-white' 
+                                : isUserAnswer && !isCorrect
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {letter}
+                            </div>
+                            <span className={`font-medium ${isCorrectOption ? 'font-bold' : ''}`}>
+                              {option}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            {isCorrectOption && (
+                              <div className="flex items-center text-green-600 text-sm font-medium">
+                                <CheckCircle2 size={16} className="mr-1" />
+                                Correct Answer
+                              </div>
+                            )}
+                            {isUserAnswer && !isCorrect && (
+                              <div className="flex items-center text-red-600 text-sm font-medium">
+                                <XCircle size={16} className="mr-1" />
+                                Your Answer
+                              </div>
+                            )}
+                            {isUserAnswer && isCorrect && (
+                              <div className="flex items-center text-green-600 text-sm font-medium">
+                                <CheckCircle2 size={16} className="mr-1" />
+                                Your Answer ✓
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span className={isCorrectAnswer ? 'font-semibold text-green-800' : ''}>
-                          {option}
-                        </span>
-                        {isCorrectAnswer && (
-                          <CheckCircle2 size={16} className="text-green-500 ml-auto" />
-                        )}
-                        {isUserAnswer && !isCorrect && (
-                          <XCircle size={16} className="text-red-500 ml-auto" />
-                        )}
                       </div>
                     );
                   })}
                 </div>
                 
-                {!isCorrect && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800">
-                      <strong>Explanation:</strong> {question.explanation}
-                    </p>
+                {/* Explanation */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center mb-2">
+                    <span className="text-blue-600 font-semibold">Explanation:</span>
                   </div>
-                )}
+                  <p className="text-blue-800 text-sm leading-relaxed">
+                    {question.explanation}
+                  </p>
+                  
+                  {/* Show what you selected vs correct answer for incorrect questions */}
+                  {!isCorrect && userAnswer && (
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div className="text-red-600">
+                          <span className="font-semibold">Your answer:</span> {userAnswer}
+                        </div>
+                        <div className="text-green-600">
+                          <span className="font-semibold">Correct answer:</span> {correctOption}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Performance Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="card p-6 text-left">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <BarChart3 size={20} className="mr-2 text-primary-600" />
+            Performance Summary
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Accuracy</span>
+              <span className="font-semibold">{score.percentage}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Time per Question</span>
+              <span className="font-semibold">{formatTime(Math.round(timeElapsed / score.total))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Difficulty</span>
+              <span className="font-semibold capitalize">
+                {quiz.quiz.reduce((acc, q) => {
+                  acc[q.difficulty] = (acc[q.difficulty] || 0) + 1;
+                  return acc;
+                }, {})['hard'] > 0 ? 'Mixed' : 
+                 quiz.quiz[0]?.difficulty || 'Unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-6 text-left">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <Target size={20} className="mr-2 text-primary-600" />
+            Next Steps
+          </h3>
+          <ul className="space-y-2 text-gray-600">
+            <li>• Review incorrect answers carefully</li>
+            <li>• Focus on questions you got wrong</li>
+            <li>• Try again for better score</li>
+            <li>• Explore related topics</li>
+          </ul>
         </div>
       </div>
     </motion.div>
