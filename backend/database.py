@@ -17,10 +17,10 @@ if not DATABASE_URL:
 # Add connection timeout and retry settings for production
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    pool_size=5,
-    max_overflow=10,
+    pool_pre_ping=True,  # Enable connection health checks
+    pool_recycle=300,    # Recycle connections after 5 minutes
+    pool_size=5,         # Number of connections to keep open
+    max_overflow=10,     # Number of connections to create beyond pool_size
     connect_args={
         "connect_timeout": 10,
         "keepalives": 1,

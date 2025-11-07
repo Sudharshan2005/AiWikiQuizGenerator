@@ -1,37 +1,29 @@
 import os
+import google.generativeai as genai
+from dotenv import load_dotenv
 import json
 import re
 from models import QuizOutput
-import requests
+
+load_dotenv()
 
 class QuizGenerator:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         
     def generate_quiz(self, article_text: str) -> QuizOutput:
-        """Generate quiz from article text using Gemini REST API"""
+        """Generate quiz from article text using direct Gemini API"""
         
-        prompt = self._build_prompt(article_text)
-        
-        try:
-            # Use direct REST API call instead of Google AI SDK
-            response = self._make_api_call(prompt)
-            quiz_data = self._parse_response(response)
-            return QuizOutput(**quiz_data)
-            
-        except Exception as e:
-            print(f"Quiz generation error: {e}")
-            return self._get_fallback_quiz()
-    
-    def _build_prompt(self, article_text: str) -> str:
-        return f"""
+        prompt = f"""
         You are an expert educational content creator. Create a comprehensive quiz based on the following Wikipedia article content.
         
         ARTICLE CONTENT:
-        {article_text[:8000]}
+        {article_text[:8000]}  # Limit text length
         
         IMPORTANT INSTRUCTIONS:
         1. Generate 5-8 high-quality quiz questions that test understanding of key concepts
@@ -74,42 +66,10 @@ class QuizGenerator:
         
         Make sure the response is valid JSON that can be parsed directly.
         """
-    
-    def _make_api_call(self, prompt: str) -> dict:
-        """Make direct REST API call to Gemini"""
-        url = f"{self.base_url}?key={self.api_key}"
         
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": prompt
-                        }
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.7,
-                "topK": 40,
-                "topP": 0.95,
-                "maxOutputTokens": 8192,
-            }
-        }
-        
-        headers = {
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        
-        return response.json()
-    
-    def _parse_response(self, api_response: dict) -> dict:
-        """Parse the API response and extract quiz data"""
         try:
-            response_text = api_response["candidates"][0]["content"]["parts"][0]["text"]
+            response = self.model.generate_content(prompt)
+            response_text = response.text
             
             # Clean the response - remove markdown code blocks if present
             response_text = re.sub(r'```json\s*', '', response_text)
@@ -135,11 +95,13 @@ class QuizGenerator:
                             # Default to A if invalid
                             question['answer'] = 'A'
             
-            return quiz_data
+            # Convert to Pydantic model
+            return QuizOutput(**quiz_data)
             
-        except (KeyError, json.JSONDecodeError) as e:
-            print(f"Error parsing API response: {e}")
-            raise
+        except Exception as e:
+            print(f"Quiz generation error: {e}")
+            # Return a fallback structure
+            return self._get_fallback_quiz()
     
     def _get_fallback_quiz(self) -> QuizOutput:
         """Return a fallback quiz when generation fails"""
