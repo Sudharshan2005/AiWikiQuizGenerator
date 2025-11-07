@@ -12,17 +12,16 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      credentials: 'include', // Important for cookies
+      credentials: 'include',
       ...options,
     };
 
     try {
-      console.log(`🔄 API Request: ${url}`, config);
       const response = await fetch(url, config);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ API Error ${response.status}:`, errorText);
+        console.error(`API Error ${response.status}:`, errorText);
         
         let errorData;
         try {
@@ -59,13 +58,10 @@ class ApiService {
 
   async getQuizAttempts(quizId) {
     try {
-      console.log(`🔄 Getting attempts for quiz ${quizId}`);
       const result = await this.request(`/quizzes/${quizId}/attempts`);
-      console.log(`✅ Got ${result.length} attempts for quiz ${quizId}`, result);
       return result;
     } catch (error) {
-      console.error(`❌ Failed to get attempts for quiz ${quizId}:`, error);
-      // Return empty array on error to prevent UI breakage
+      console.error(`Failed to get attempts for quiz ${quizId}:`, error);
       return [];
     }
   }

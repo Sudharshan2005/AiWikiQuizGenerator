@@ -229,13 +229,10 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
   const loadAttempts = async () => {
     setLoadingAttempts(true);
     try {
-      console.log(`🔄 Loading attempts for quiz ID: ${quiz.id}`);
       const attemptsData = await api.getQuizAttempts(quiz.id);
-      console.log(`✅ Loaded ${attemptsData.length} attempts:`, attemptsData);
       setAttempts(attemptsData);
     } catch (error) {
-      console.error('❌ Failed to load attempts:', error);
-      // Set empty array on error to prevent infinite loading
+      console.error('Failed to load attempts:', error);
       setAttempts([]);
     } finally {
       setLoadingAttempts(false);
@@ -243,15 +240,13 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
   };
 
   const handleQuizComplete = (result) => {
-    console.log('🎯 Quiz completed with result:', result);
-    loadAttempts(); // Reload attempts to include the new one
+    loadAttempts();
     setSelectedAttempt(result);
     setViewMode('review');
     setActiveSection('results');
   };
 
   const handleViewAttempt = (attempt) => {
-    console.log('👀 Viewing attempt:', attempt);
     setSelectedAttempt(attempt);
     setViewMode('review');
     setActiveSection('results');
@@ -275,7 +270,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
     ? Math.max(...attempts.map(a => a.score))
     : null;
 
-  // Navigation tabs based on mode
   const getTabs = () => {
     if (viewMode === 'take') {
       return ['quiz'];
@@ -295,7 +289,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
       transition={{ duration: 0.6 }}
       className="space-y-6"
     >
-      {/* Header - Only show in view mode */}
       {viewMode === 'view' && (
         <div className="card p-8 bg-gradient-to-br from-white to-gray-50">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -346,7 +339,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
         </div>
       )}
 
-      {/* Stats Bar - Only in view mode */}
       {viewMode === 'view' && attempts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="card p-4 text-center">
@@ -372,7 +364,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
         </div>
       )}
 
-      {/* Loading state for attempts */}
       {loadingAttempts && (
         <div className="card p-8 text-center">
           <div className="flex flex-col items-center">
@@ -387,7 +378,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
         </div>
       )}
 
-      {/* Navigation Tabs - Only in view mode */}
       {viewMode === 'view' && !loadingAttempts && (
         <div className="flex space-x-1 p-1 bg-gray-100 rounded-2xl w-fit">
           {tabs.map((tab) => (
@@ -406,7 +396,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
         </div>
       )}
 
-      {/* Exit button for take and review modes */}
       {(viewMode === 'take' || viewMode === 'review') && (
         <div className="flex justify-between items-center">
           <button
@@ -432,7 +421,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
         </div>
       )}
 
-      {/* Content Sections */}
       <AnimatePresence mode="wait">
         {activeSection === 'overview' && viewMode === 'view' && !loadingAttempts && (
           <motion.div
@@ -443,7 +431,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {/* Key Entities */}
             <div className="card p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
                 <Users className="mr-3 text-primary-600" size={24} />
@@ -452,7 +439,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
               <EntitySection entities={quiz.key_entities || {}} />
             </div>
 
-            {/* Sections */}
             {quiz.sections && quiz.sections.length > 0 && (
               <div className="card p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
@@ -475,7 +461,6 @@ const FixedEnhancedQuizCard = ({ quiz, mode = 'view', onModeChange }) => {
               </div>
             )}
 
-            {/* Recent Attempt (if any) */}
             {attempts.length > 0 && (
               <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

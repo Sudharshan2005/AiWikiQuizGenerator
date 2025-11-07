@@ -26,7 +26,6 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          {/* Logo */}
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="flex items-center space-x-3 cursor-pointer"
@@ -53,7 +52,6 @@ const Header = () => {
             </div>
           </motion.div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <a
               href="#features"
@@ -78,7 +76,6 @@ const Header = () => {
             </a>
           </nav>
 
-          {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200"
@@ -87,7 +84,6 @@ const Header = () => {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.nav

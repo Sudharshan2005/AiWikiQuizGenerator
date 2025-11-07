@@ -71,36 +71,28 @@ class QuizGenerator:
             response = self.model.generate_content(prompt)
             response_text = response.text
             
-            # Clean the response - remove markdown code blocks if present
             response_text = re.sub(r'```json\s*', '', response_text)
             response_text = re.sub(r'\s*```', '', response_text)
             response_text = response_text.strip()
             
-            # Parse JSON response
             quiz_data = json.loads(response_text)
             
-            # Validate that answers are just letters
             for question in quiz_data.get('quiz', []):
                 if 'answer' in question:
-                    # Ensure answer is just a letter
                     answer = str(question['answer']).strip().upper()
                     if len(answer) == 1 and answer in ['A', 'B', 'C', 'D']:
                         question['answer'] = answer
                     else:
-                        # Extract first character if it's a letter
                         match = re.match(r'^([A-D])', answer)
                         if match:
                             question['answer'] = match.group(1)
                         else:
-                            # Default to A if invalid
                             question['answer'] = 'A'
             
-            # Convert to Pydantic model
             return QuizOutput(**quiz_data)
             
         except Exception as e:
             print(f"Quiz generation error: {e}")
-            # Return a fallback structure
             return self._get_fallback_quiz()
     
     def _get_fallback_quiz(self) -> QuizOutput:

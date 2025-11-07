@@ -8,19 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Use Supabase PostgreSQL with proper connection settings
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-# Add connection timeout and retry settings for production
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,  # Enable connection health checks
-    pool_recycle=300,    # Recycle connections after 5 minutes
-    pool_size=5,         # Number of connections to keep open
-    max_overflow=10,     # Number of connections to create beyond pool_size
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=5,
+    max_overflow=10,
     connect_args={
         "connect_timeout": 10,
         "keepalives": 1,
@@ -65,21 +63,17 @@ class QuizAttempt(Base):
     
     quiz = relationship("Quiz", back_populates="attempts")
 
-# Create tables with error handling
 try:
     Base.metadata.create_all(bind=engine)
-    print("✅ Database tables created successfully")
 except Exception as e:
-    print(f"⚠️  Database table creation: {e}")
-    # Don't raise the exception to allow the app to start
-    # The tables might already exist
+    print(f"Database table creation: {e}")
 
 def get_db():
     db = SessionLocal()
     try:
         yield db
     except Exception as e:
-        print(f"❌ Database session error: {e}")
+        print(f"Database session error: {e}")
         db.rollback()
         raise
     finally:

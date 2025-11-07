@@ -21,7 +21,7 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'details'
+  const [viewMode, setViewMode] = useState('list');
 
   useEffect(() => {
     loadHistory();
@@ -34,12 +34,10 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
   const loadHistory = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Loading quiz history...');
       const history = await api.getQuizHistory();
-      console.log('✅ Loaded quiz history:', history);
       setQuizzes(history);
     } catch (err) {
-      console.error('❌ Failed to load history:', err);
+      console.error('Failed to load history:', err);
     } finally {
       setLoading(false);
     }
@@ -51,7 +49,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
       quiz.url.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Sort quizzes
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
@@ -72,25 +69,23 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
 
   const handleViewDetails = async (quiz) => {
     try {
-      console.log('👀 Viewing details for quiz:', quiz.id);
       const quizDetails = await api.getQuizById(quiz.id);
       setSelectedQuiz(quizDetails);
       setViewMode('details');
       setModalOpen(true);
     } catch (err) {
-      console.error('❌ Failed to load quiz details:', err);
+      console.error('Failed to load quiz details:', err);
     }
   };
 
   const handleTakeQuiz = async (quiz) => {
     try {
-      console.log('🎯 Taking quiz:', quiz.id);
       const quizDetails = await api.getQuizById(quiz.id);
       setSelectedQuiz(quizDetails);
       setViewMode('take');
       setModalOpen(true);
     } catch (err) {
-      console.error('❌ Failed to load quiz for taking:', err);
+      console.error('Failed to load quiz for taking:', err);
     }
   };
 
@@ -98,7 +93,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
     setModalOpen(false);
     setSelectedQuiz(null);
     setViewMode('list');
-    // Reload history to get updated attempt counts
     loadHistory();
   };
 
@@ -113,7 +107,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -127,7 +120,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
           </p>
         </motion.div>
 
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -173,7 +165,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
           ))}
         </motion.div>
 
-        {/* Controls */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -181,7 +172,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
           className="card p-6 mb-8"
         >
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            {/* Search */}
             <div className="flex-1 w-full lg:max-w-md">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -195,7 +185,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
               </div>
             </div>
 
-            {/* Sort and Filter */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Filter size={18} className="text-gray-400" />
@@ -222,7 +211,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
           </div>
         </motion.div>
 
-        {/* Quizzes Grid */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -241,7 +229,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Empty State */}
         {filteredQuizzes.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -270,7 +257,6 @@ const EnhancedHistoryTab = ({ onGenerateNewQuiz }) => {
         )}
       </div>
 
-      {/* Quiz Details Modal */}
       <EnhancedModal
         isOpen={modalOpen}
         onClose={handleModalClose}

@@ -108,7 +108,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Quiz Header */}
       <div className="card p-6 mb-6 bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -125,7 +124,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
             </div>
           </div>
           
-          {/* Progress Bar */}
           <div className="lg:w-48">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
@@ -140,7 +138,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
         </div>
       </div>
 
-      {/* Question Card */}
       <motion.div
         key={currentQuestion}
         initial={{ opacity: 0, x: 50 }}
@@ -148,7 +145,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
         exit={{ opacity: 0, x: -50 }}
         className="card p-8 mb-6"
       >
-        {/* Question Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-3">
@@ -171,7 +167,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
           </div>
         </div>
 
-        {/* Options */}
         <div className="space-y-3">
           {currentQ.options.map((option, index) => {
             const isSelected = userAnswers[currentQuestion] === option;
@@ -205,7 +200,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
         </div>
       </motion.div>
 
-      {/* Navigation */}
       <div className="flex justify-between items-center">
         <button
           onClick={handlePrevious}
@@ -233,7 +227,6 @@ const QuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData = nu
         </div>
       </div>
 
-      {/* Quick Navigation Dots */}
       <div className="flex justify-center space-x-2 mt-8">
         {quiz.quiz.map((_, index) => (
           <button
@@ -266,7 +259,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry }) => {
       animate={{ opacity: 1, scale: 1 }}
       className="max-w-4xl mx-auto text-center"
     >
-      {/* Results Header */}
       <div className="card p-8 mb-8 bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200">
         <motion.div
           initial={{ scale: 0 }}
@@ -323,7 +315,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry }) => {
         </div>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="card p-6 text-left">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center">

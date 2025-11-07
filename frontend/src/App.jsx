@@ -51,7 +51,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Enhanced Header */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -63,7 +62,6 @@ function App() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            {/* Logo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-3 cursor-pointer"
@@ -91,7 +89,6 @@ function App() {
               </div>
             </motion.div>
 
-            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1 bg-white/80 backdrop-blur-sm rounded-2xl p-1 border border-gray-200/50 shadow-sm">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -113,7 +110,6 @@ function App() {
               })}
             </nav>
 
-            {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm"
@@ -122,7 +118,6 @@ function App() {
             </button>
           </div>
 
-          {/* Mobile Navigation */}
           <AnimatePresence>
             {mobileMenuOpen && (
               <motion.nav
@@ -157,7 +152,6 @@ function App() {
         </div>
       </motion.header>
 
-      {/* Main Content */}
       <main className="pt-20">
         <AnimatePresence mode="wait">
           <motion.div
@@ -172,7 +166,6 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
       <footer className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

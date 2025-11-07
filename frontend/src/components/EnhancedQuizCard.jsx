@@ -135,7 +135,7 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
 
   const handleQuizComplete = (result) => {
     setLatestAttempt(result);
-    loadAttempts(); // Reload attempts to include the new one
+    loadAttempts();
     setActiveSection('results');
   };
 
@@ -150,7 +150,6 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
       transition={{ duration: 0.6 }}
       className="space-y-6"
     >
-      {/* Header */}
       <div className="card p-8 bg-gradient-to-br from-white to-gray-50">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div className="flex-1">
@@ -201,7 +200,6 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
         </div>
       </div>
 
-      {/* Stats Bar */}
       {attempts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="card p-4 text-center">
@@ -227,7 +225,6 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
         </div>
       )}
 
-      {/* Navigation Tabs */}
       <div className="flex space-x-1 p-1 bg-gray-100 rounded-2xl w-fit">
         {['overview', 'quiz', 'history', 'topics'].map((tab) => (
           <button
@@ -244,7 +241,6 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
         ))}
       </div>
 
-      {/* Content Sections */}
       <AnimatePresence mode="wait">
         {activeSection === 'overview' && (
           <motion.div
@@ -254,16 +250,13 @@ const EnhancedQuizCard = ({ quiz, showAnswers = true, mode = 'view' }) => {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Key Entities */}
             <div className="card p-6 mb-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
                 <Users className="mr-3 text-primary-600" size={24} />
                 Key Entities
               </h3>
-              {/* Entity section implementation */}
             </div>
 
-            {/* Recent Attempt (if any) */}
             {latestAttempt && (
               <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
-import EnhancedQuizCard from '../components/EnhancedQuizCard';
 import FixedEnhancedQuizCard from '../components/FixedEnhancedQuizCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -18,7 +17,7 @@ const EnhancedGenerateQuizTab = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [quiz, setQuiz] = useState(null);
-  const [step, setStep] = useState('input'); // input, generating, result
+  const [step, setStep] = useState('input');
 
   const validateUrl = (url) => {
     const wikipediaRegex = /^https:\/\/[a-z]{2,3}\.wikipedia\.org\/wiki\/[^/]+$/;
@@ -58,7 +57,6 @@ const EnhancedGenerateQuizTab = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -73,7 +71,6 @@ const EnhancedGenerateQuizTab = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Input Section */}
           <div className="lg:col-span-1">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -139,7 +136,6 @@ const EnhancedGenerateQuizTab = () => {
                 )}
               </form>
 
-              {/* Features List */}
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <h3 className="font-semibold text-gray-900 mb-4">What you'll get:</h3>
                 <div className="space-y-3">
@@ -160,7 +156,6 @@ const EnhancedGenerateQuizTab = () => {
             </motion.div>
           </div>
 
-          {/* Results Section */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               {step === 'generating' && (
@@ -188,27 +183,27 @@ const EnhancedGenerateQuizTab = () => {
                 </motion.div>
               )}
 
-{step === 'result' && quiz && (
-  <motion.div
-    key="result"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-  >
-    <div className="flex items-center justify-between mb-6">
-      <h2 className="text-2xl font-bold text-gray-900">
-        Quiz Generated Successfully! 🎉
-      </h2>
-      <button
-        onClick={resetForm}
-        className="btn-secondary"
-      >
-        Create New Quiz
-      </button>
-    </div>
-    <FixedEnhancedQuizCard quiz={quiz} mode="view" />
-  </motion.div>
-)}
+              {step === 'result' && quiz && (
+                <motion.div
+                  key="result"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      Quiz Generated Successfully! 🎉
+                    </h2>
+                    <button
+                      onClick={resetForm}
+                      className="btn-secondary"
+                    >
+                      Create New Quiz
+                    </button>
+                  </div>
+                  <FixedEnhancedQuizCard quiz={quiz} mode="view" />
+                </motion.div>
+              )}
 
               {step === 'input' && !quiz && (
                 <motion.div
@@ -228,7 +223,6 @@ const EnhancedGenerateQuizTab = () => {
                     Enter a Wikipedia URL above and watch as AI transforms it into an engaging educational quiz with questions, explanations, and key insights.
                   </p>
                   
-                  {/* Sample URLs */}
                   <div className="max-w-md mx-auto">
                     <p className="text-sm font-medium text-gray-700 mb-3">Try these examples:</p>
                     <div className="space-y-2">

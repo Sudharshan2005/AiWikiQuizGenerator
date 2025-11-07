@@ -34,7 +34,6 @@ const EnhancedModal = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +41,6 @@ const EnhancedModal = ({
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={onClose}
           >
-            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -51,7 +49,6 @@ const EnhancedModal = ({
               className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <h2 className="text-xl font-bold text-gray-900">{title}</h2>
                 {showCloseButton && (
@@ -67,7 +64,6 @@ const EnhancedModal = ({
                 )}
               </div>
               
-              {/* Content */}
               <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
                 {children}
               </div>

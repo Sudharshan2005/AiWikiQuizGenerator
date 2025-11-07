@@ -21,14 +21,12 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
   const [submitting, setSubmitting] = useState(false);
   const timerRef = useRef(null);
 
-  // Initialize based on props
   useEffect(() => {
     if (showResults && attemptData) {
       setUserAnswers(attemptData.answers || []);
       setQuizCompleted(true);
       setTimeElapsed(attemptData.time_taken || 0);
     } else {
-      // Reset for new quiz
       setCurrentQuestion(0);
       setUserAnswers([]);
       setTimeElapsed(0);
@@ -36,7 +34,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
     }
   }, [showResults, attemptData]);
 
-  // Timer logic
   useEffect(() => {
     if (!quizCompleted && !showResults) {
       timerRef.current = setInterval(() => {
@@ -98,17 +95,14 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
     }
   };
 
-  // Helper function to check if answer is correct
   const isAnswerCorrect = (userAnswer, correctAnswer, options = []) => {
     if (!userAnswer || !correctAnswer) return false;
     
-    // If correctAnswer is just a letter (A, B, C, D), extract the letter from userAnswer
     if (/^[A-D]$/i.test(correctAnswer.trim())) {
       const userAnswerLetter = userAnswer.charAt(0).toUpperCase();
       return userAnswerLetter === correctAnswer.trim().toUpperCase();
     }
     
-    // If correctAnswer is a full option text, compare directly
     return userAnswer === correctAnswer;
   };
 
@@ -126,11 +120,9 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
     };
   };
 
-  // Helper function to find the correct option text
   const findCorrectOption = (question) => {
     const correctAnswer = question.answer;
     
-    // If correctAnswer is just a letter (A, B, C, D), find the corresponding option
     if (/^[A-D]$/i.test(correctAnswer.trim())) {
       const letter = correctAnswer.trim().toUpperCase();
       const optionIndex = letter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
@@ -139,7 +131,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
       }
     }
     
-    // If correctAnswer is already the full option text, return it
     return correctAnswer;
   };
 
@@ -167,7 +158,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Quiz Header */}
       <div className="card p-6 mb-6 bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -184,7 +174,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
             </div>
           </div>
           
-          {/* Progress Bar */}
           <div className="lg:w-48">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
@@ -199,7 +188,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
         </div>
       </div>
 
-      {/* Question Card */}
       <motion.div
         key={currentQuestion}
         initial={{ opacity: 0, x: 50 }}
@@ -207,7 +195,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
         exit={{ opacity: 0, x: -50 }}
         className="card p-8 mb-6"
       >
-        {/* Question Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-3">
@@ -230,7 +217,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
           </div>
         </div>
 
-        {/* Options */}
         <div className="space-y-3">
           {currentQ.options.map((option, index) => {
             const isSelected = userAnswers[currentQuestion] === option;
@@ -264,7 +250,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
         </div>
       </motion.div>
 
-      {/* Navigation */}
       <div className="flex justify-between items-center">
         <button
           onClick={handlePrevious}
@@ -308,7 +293,6 @@ const FixedQuizTaker = ({ quiz, onQuizComplete, showResults = false, attemptData
         </div>
       </div>
 
-      {/* Quick Navigation Dots */}
       <div className="flex justify-center space-x-2 mt-8">
         {quiz.quiz.map((_, index) => (
           <button
@@ -336,25 +320,20 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Helper function to check if answer is correct
   const isAnswerCorrect = (userAnswer, correctAnswer, options = []) => {
     if (!userAnswer || !correctAnswer) return false;
     
-    // If correctAnswer is just a letter (A, B, C, D), extract the letter from userAnswer
     if (/^[A-D]$/i.test(correctAnswer.trim())) {
       const userAnswerLetter = userAnswer.charAt(0).toUpperCase();
       return userAnswerLetter === correctAnswer.trim().toUpperCase();
     }
     
-    // If correctAnswer is a full option text, compare directly
     return userAnswer === correctAnswer;
   };
 
-  // Helper function to find the correct option text
   const findCorrectOption = (question) => {
     const correctAnswer = question.answer;
     
-    // If correctAnswer is just a letter (A, B, C, D), find the corresponding option
     if (/^[A-D]$/i.test(correctAnswer.trim())) {
       const letter = correctAnswer.trim().toUpperCase();
       const optionIndex = letter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
@@ -363,7 +342,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
       }
     }
     
-    // If correctAnswer is already the full option text, return it
     return correctAnswer;
   };
 
@@ -373,7 +351,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
       animate={{ opacity: 1, scale: 1 }}
       className="max-w-6xl mx-auto"
     >
-      {/* Results Header */}
       <div className="card p-8 mb-8 bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200">
         <motion.div
           initial={{ scale: 0 }}
@@ -434,7 +411,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
         </div>
       </div>
 
-      {/* Question Review - FIXED VERSION */}
       <div className="card p-6 mb-6">
         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
           <BarChart3 size={24} className="mr-3 text-primary-600" />
@@ -478,7 +454,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
                   </div>
                 </div>
                 
-                {/* Options with clear indication of correct and user answers */}
                 <div className="space-y-3 mb-4">
                   {question.options.map((option, optIndex) => {
                     const letter = String.fromCharCode(65 + optIndex);
@@ -554,7 +529,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
                   })}
                 </div>
                 
-                {/* Explanation */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center mb-2">
                     <span className="text-blue-600 font-semibold">Explanation:</span>
@@ -563,7 +537,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
                     {question.explanation}
                   </p>
                   
-                  {/* Show what you selected vs correct answer for incorrect questions */}
                   {!isCorrect && userAnswer && (
                     <div className="mt-3 pt-3 border-t border-blue-200">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -583,7 +556,6 @@ const QuizResults = ({ quiz, userAnswers, score, timeElapsed, onRetry, onExit, s
         </div>
       </div>
 
-      {/* Performance Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="card p-6 text-left">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
