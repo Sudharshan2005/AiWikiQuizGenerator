@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List
 import models
 import schemas
 from database import get_db, Quiz, QuizAttempt
@@ -10,6 +10,7 @@ from llm_quiz_generator import QuizGenerator
 import json
 import uuid
 from datetime import datetime
+import os
 
 app = FastAPI(title="AI Wiki Quiz Generator", version="1.0.0")
 
@@ -22,6 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if os.getenv("RENDER"):
+    # If running on Render, allow all origins for testing
+    allowed_origins.append("*")
+
 quiz_generator = QuizGenerator()
 
 def get_user_session(request: Request, response: Response):
@@ -29,13 +34,13 @@ def get_user_session(request: Request, response: Response):
     session_id = request.cookies.get("quiz_session_id")
     if not session_id:
         session_id = str(uuid.uuid4())
-        # Set cookie for 30 days
         response.set_cookie(
             key="quiz_session_id",
             value=session_id,
             max_age=30*24*60*60,
             httponly=True,
-            samesite="lax"
+            samesite="lax",
+            secure=os.getenv("RENDER") is not None  # Use secure cookies in production
         )
     return session_id
 
@@ -111,15 +116,32 @@ def submit_quiz_attempt(
             detail="Quiz not found"
         )
     
-    # Calculate score
+    # Calculate score - FIXED: Handle both letter answers and full text answers
     quiz_data = quiz.get_quiz_data()
     quiz_questions = quiz_data.get('quiz', [])
     correct_answers = 0
     user_answers = attempt_data.answers
     
+    def is_answer_correct(user_answer, correct_answer, options):
+        if not user_answer or not correct_answer:
+            return False
+        
+        # If correct_answer is just a letter (A, B, C, D), check first character of user_answer
+        if len(correct_answer.strip()) == 1 and correct_answer.strip().upper() in ['A', 'B', 'C', 'D']:
+            user_first_char = user_answer.strip()[0].upper() if user_answer else ''
+            return user_first_char == correct_answer.strip().upper()
+        
+        # If correct_answer is full text, compare directly
+        return user_answer.strip() == correct_answer.strip()
+    
     for i, question in enumerate(quiz_questions):
-        if i < len(user_answers) and user_answers[i] == question['answer']:
-            correct_answers += 1
+        if i < len(user_answers):
+            user_answer = user_answers[i]
+            correct_answer = question['answer']
+            options = question.get('options', [])
+            
+            if is_answer_correct(user_answer, correct_answer, options):
+                correct_answers += 1
     
     total_questions = len(quiz_questions)
     score_percentage = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
@@ -234,8 +256,23 @@ def get_quiz(quiz_id: int, db: Session = Depends(get_db)):
 
 # Add health check endpoint
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "message": "API is running"}
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Test database connection
+        db.execute("SELECT 1")
+        return {
+            "status": "healthy", 
+            "message": "API and database are running",
+            "database": "connected",
+            "environment": "production" if os.getenv("RENDER") else "development"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "message": "Database connection failed",
+            "error": str(e),
+            "environment": "production" if os.getenv("RENDER") else "development"
+        }
 
 # Add endpoint to list all available endpoints
 @app.get("/endpoints")
